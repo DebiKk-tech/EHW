@@ -18,10 +18,6 @@ def load_image(name, colorkey=None):
     return image
 
 
-main_image = load_image('main_surface.xcf')
-
-
-
 class object_sprite(pygame.sprite.Sprite):
     def __init__(self, image_name, x, y):
         super().__init__(all_sprites)
