@@ -79,8 +79,6 @@ class Board:
                 elif COLORS[self.board[row][col]] == 'plant':
                     current_object = object_sprite('plant.xcf', self.left + col * self.cell_size + 1,
                                                    self.top + row * self.cell_size + 1)
-                    current_object = object_sprite('hero_end.xcf', self.left + col * self.cell_size + 1,
-                                                   self.top + row * self.cell_size + 1)
         all_sprites.draw(screen)
 
 
