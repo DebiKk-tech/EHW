@@ -1,5 +1,6 @@
+# Талдин М.
 import pygame
-from pygame.constants import K_UP, K_DOWN, K_LEFT, K_RIGHT, K_a, K_w, K_s, K_d
+from pygame.constants import K_w, K_a, K_s, K_d, K_UP, K_DOWN, K_RIGHT, K_LEFT
 
 PLAYER_SPEED = 4
 RELOAD = 30
@@ -10,15 +11,18 @@ ENEMY_SPEED = 2
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, x, y, sprites_group, enemy_group, bullet_group, size):
+        super().__init__(sprites_group)
         self.image = pygame.Surface((40, 40))
         self.rect = self.image.get_rect()
         self.image.fill(BLUE)
-        self.rect.centerx = width // 2
-        self.rect.centery = height // 2
+        self.rect.centerx = x
+        self.rect.centery = y
         self.speedx, self.speedy = 0, 0
         self.reload = RELOAD
+        self.enemies = enemy_group
+        self.width, self.height = size
+        self.sprites, self.bullets = sprites_group, bullet_group
 
     def update(self):
         self.speedx = 0
@@ -26,28 +30,30 @@ class Player(pygame.sprite.Sprite):
         keystate = pygame.key.get_pressed()
         if keystate[K_a] and self.rect.left > 0:
             self.speedx = -PLAYER_SPEED
-        elif keystate[K_d] and self.rect.right < width:
+        elif keystate[K_d] and self.rect.right < self.width:
             self.speedx = PLAYER_SPEED
         if keystate[K_w] and self.rect.top > 0:
             self.speedy = -PLAYER_SPEED
-        elif keystate[K_s] and self.rect.bottom < height:
+        elif keystate[K_s] and self.rect.bottom < self.height:
             self.speedy = PLAYER_SPEED
         self.rect.x += self.speedx
         self.rect.y += self.speedy
         if self.reload <= 0:
             if keystate[K_LEFT]:
-                create_bullet('left', self)
+                create_bullet('left', self, self.sprites, self.bullets)
                 self.reload = RELOAD
             elif keystate[K_RIGHT]:
-                create_bullet('right', self)
+                create_bullet('right', self, self.sprites, self.bullets)
                 self.reload = RELOAD
             elif keystate[K_UP]:
-                create_bullet('top', self)
+                create_bullet('top', self, self.sprites, self.bullets)
                 self.reload = RELOAD
             elif keystate[K_DOWN]:
-                create_bullet('down', self)
+                create_bullet('down', self, self.sprites, self.bullets)
                 self.reload = RELOAD
         self.reload -= 1
+        if pygame.sprite.spritecollide(self, self.enemies, True):
+            self.kill()
 
 
 class Bullet(pygame.sprite.Sprite):
@@ -81,15 +87,16 @@ class Bullet(pygame.sprite.Sprite):
 
 
 class Enemy(pygame.sprite.Sprite):
-    def __init__(self, x, y, player):
+    def __init__(self, x, y, player, bullets_group):
         super().__init__()
         self.image = pygame.Surface((40, 40))
         self.rect = self.image.get_rect()
         self.image.fill((220, 20, 60))
-        self.rect.centerx = x
-        self.rect.centery = y
+        self.rect.x = x
+        self.rect.y = y
         self.speedx, self.speedy = 0, 0
         self.target = player
+        self.bullet_group = bullets_group
 
     def update(self):
         if self.rect.centerx > self.target.rect.centerx:
@@ -104,44 +111,23 @@ class Enemy(pygame.sprite.Sprite):
         self.rect.y += self.speedy
         self.speedy, self.speedx = 0, 0
         # Проверка столкновений
-        if pygame.sprite.spritecollide(self, bullets, True):
+        if pygame.sprite.spritecollide(self, self.bullet_group, True):
             self.kill()
 
 
-def create_bullet(side, player):
+def create_player(x, y, sprites_group, enemy_group, bullet_group, size):
+    pl = Player(x, y, sprites_group, enemy_group, bullet_group, size)
+    sprites_group.add(pl)
+    return pl
+
+
+def create_bullet(side, player, sprites_group, bullets_group):
     bul = Bullet(side, player)
-    all_sprites.add(bul)
-    bullets.add(bul)
+    sprites_group.add(bul)
+    bullets_group.add(bul)
 
 
-def create_enemy(x, y, player):
-    en = Enemy(x, y, player)
-    all_sprites.add(en)
-    enemies.add(en)
-
-
-if __name__ == '__main__':
-    pygame.init()
-    size = width, height = 1060, 560
-    screen = pygame.display.set_mode(size)
-    clock = pygame.time.Clock()
-    pl = Player()
-    all_sprites = pygame.sprite.Group()
-    all_sprites.add(pl)
-    bullets = pygame.sprite.Group()
-    enemies = pygame.sprite.Group()
-    running = True
-    for coords in [(10, 10), (10, height - 10), (width - 10, 10), (width - 10, height - 10)]:
-        create_enemy(coords[0], coords[1], pl)
-    while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-        screen.fill((0, 0, 0))
-        all_sprites.draw(screen)
-        all_sprites.update()
-        pygame.display.flip()
-        clock.tick(60)
-        if pygame.sprite.spritecollide(pl, enemies, True):
-            running = False
-    pygame.quit()
+def create_enemy(x, y, player, sprites_group, enemy_group, bullets_group):
+    en = Enemy(x, y, player, bullets_group)
+    sprites_group.add(en)
+    enemy_group.add(en)
