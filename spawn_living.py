@@ -28,13 +28,13 @@ class Player(pygame.sprite.Sprite):
         self.speedx = 0
         self.speedy = 0
         keystate = pygame.key.get_pressed()
-        if keystate[K_a] and self.rect.left > 0:
+        if keystate[K_a] and self.rect.left > 31:
             self.speedx = -PLAYER_SPEED
-        elif keystate[K_d] and self.rect.right < self.width:
+        elif keystate[K_d] and self.rect.right < self.width - 31:
             self.speedx = PLAYER_SPEED
-        if keystate[K_w] and self.rect.top > 0:
+        if keystate[K_w] and self.rect.top > 31:
             self.speedy = -PLAYER_SPEED
-        elif keystate[K_s] and self.rect.bottom < self.height:
+        elif keystate[K_s] and self.rect.bottom < self.height - 31:
             self.speedy = PLAYER_SPEED
         self.rect.x += self.speedx
         self.rect.y += self.speedy

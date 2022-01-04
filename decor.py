@@ -63,6 +63,7 @@ class furniture_sprite(pygame.sprite.Sprite):
     def collision(self, object):
         pass
 
+
 # -----------------
 class Board:
     def __init__(self, width, height, left=30, top=30, cell_size=50, board=[]):
