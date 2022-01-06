@@ -1,10 +1,11 @@
 import pygame
+from player import *
 from random import *
 import os
 import sys
 
 
-COLORS = ['floor', 'plant', 'floor', 'floor', 'cupboard', 'floor', 'floor', 'floor', 'table']
+COLORS = ['floor', 'plant', 'floor', 'floor', 'cupboard', 'floor', 'floor', 'floor', 'table', 'door']
 all_sprites = pygame.sprite.Group()
 furniture_sprites = pygame.sprite.Group()
 plant_sprites = pygame.sprite.Group()
@@ -63,38 +64,42 @@ class furniture_sprite(pygame.sprite.Sprite):
     def collision(self, object):
         pass
 
-
 # -----------------
+
+
+LEFT = 30
+TOP = 30
+CELL_SIZE = 50
+
+
 class Board:
-    def __init__(self, width, height, left=30, top=30, cell_size=50, board=[]):
+    def __init__(self, width, height):
         # Cаша Ч
         self.width = width
         self.height = height
         board_row = []
-        self.board = board
-        if board == []:
-            for i in range(height):
-                for j in range(width):
-                    if i == 0 and j == 0 or i == height - 1 and j == 0 or i == 0 and j == width - 1 \
-                             or i == height - 1 and j == width - 1:
-                        board_row.append(randint(0, 1))
-                    elif i == 0 or i == height - 1:
-                        board_row.append(randint(2, 5))
-                    elif abs(i - height // 2) <= 2 and abs(j - width / 2) <= 1:
-                        board_row.append((randint(5, 8)))
-                    else:
-                        board_row.append(0)
-                self.board.append(board_row)
-                board_row = []
-        self.set_view(left, top, cell_size)
+        self.board = []
+        for i in range(height):
+            for j in range(width):
+                if i == 0 and j == 0 or i == height - 1 and j == 0 or i == 0 and j == width - 1 \
+                         or i == height - 1 and j == width - 1:
+                    board_row.append(COLORS[randint(0, 1)])
+                elif i == 0 or i == height - 1:
+                    board_row.append(COLORS[randint(2, 5)])
+                elif abs(i - height // 2) <= 2 and abs(j - width / 2) <= 1:
+                    board_row.append((COLORS[randint(5, 8)]))
+                else:
+                    board_row.append(COLORS[0])
+            self.board.append(board_row)
+            board_row = []
+        self.board[height // 2 - 1][0] = self.board[height // 2][0] = self.board[height // 2 - 1][width - 1] =\
+            self.board[height // 2][width - 1] = COLORS[9]
+        self.set_view(LEFT, TOP, CELL_SIZE)
 
     def set_view(self, left, top, cell_size):
         self.left = left
         self.top = top
         self.cell_size = cell_size
-
-    def ret_board(self):
-        return self.board
 
     def render(self):
         for row in range(self.height):
@@ -114,16 +119,17 @@ class Board:
                                                    self.top + row * self.cell_size + 1)
 
 
-def main(board):
-    for row in range(len(board)):
-        for col in range(len(board[0])):
-            board[row][col] = COLORS[board[row][col]]
-    return Board(len(board[0]), len(board), board=board)
+def main(boards, cur_ind):
+    return boards[cur_ind]
 
 
 def get_decorate():
     return all_sprites, plant_sprites, furniture_sprites
 
 
-board = main(Board(20, 10, 30, 30, 50).ret_board())
-board.render()
+boards = []
+cur_ind = 0
+board = Board(20, 10)
+boards.append(board)
+cur_board = main(boards, cur_ind)
+cur_board.render()
