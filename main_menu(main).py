@@ -1,6 +1,5 @@
 # Талдин М.
 import pygame
-from spawn_living import *
 from decor import *
 from player import *
 
@@ -25,13 +24,12 @@ def start_game():
     all_sprites = pygame.sprite.Group()
     enemies = pygame.sprite.Group()
     bullets = pygame.sprite.Group()
+    player_group = pygame.sprite.Group()
     room_sprites = get_decorate()
     for group in room_sprites:
         for sprite in group:
             all_sprites.add(sprite)
-    pl = create_player(WIDTH // 2, HEIGHT // 2, all_sprites, enemies, bullets, size)
-    for coords in [(0, 0), (WIDTH - 70, 0), (0, HEIGHT - 70), (WIDTH, HEIGHT)]:
-        create_enemy(coords[0], coords[1], pl, all_sprites, enemies, bullets)
+    pl = create_player(WIDTH // 2, HEIGHT // 2, player_group, enemies, bullets, size)
     all_sprites.draw(screen)
     while running:
         for event in pygame.event.get():
@@ -39,6 +37,7 @@ def start_game():
                 running = False
                 pygame.quit()
             if event.type == NEW_ROOM:
+                new = False
                 if pl.rect.x - LEFT <= CELL_SIZE:
                     if cur_ind != 0:
                         cur_ind -= 1
@@ -46,6 +45,7 @@ def start_game():
                         continue
                 else:
                     cur_ind += 1
+                    new = True
                 if cur_ind >= len(boards):
                     board = Board(20, 10)
                     boards.append(board)
@@ -57,9 +57,10 @@ def start_game():
                 for group in room_sprites:
                     for sprite in group:
                         all_sprites.add(sprite)
-                pl = create_player(WIDTH // 2, HEIGHT // 2, all_sprites, enemies, bullets, size)
-                for coords in [(0, 0), (WIDTH - 70, 0), (0, HEIGHT - 70), (WIDTH, HEIGHT)]:
-                    create_enemy(coords[0], coords[1], pl, all_sprites, enemies, bullets)
+                pl.rect.center = WIDTH // 2, HEIGHT // 2
+                if new:
+                    for coords in [(0, 0), (WIDTH - 70, 0), (0, HEIGHT - 70), (WIDTH, HEIGHT)]:
+                        create_enemy(coords[0], coords[1], pl, all_sprites, enemies, bullets)
         if not pl.alive():
             running = False
             for sprited in all_sprites:
@@ -69,6 +70,8 @@ def start_game():
             screen.fill((0, 0, 0))
             all_sprites.draw(screen)
             all_sprites.update()
+            player_group.update()
+            player_group.draw(screen)
             pygame.display.flip()
             clock.tick(FPS)
 
@@ -77,7 +80,7 @@ def start_game():
 def create_menu():
     running = True
     menu_sprite_background = pygame.sprite.Sprite(menu_sprites)
-    menu_sprite_background.image = load_image('menu_image.png')
+    menu_sprite_background.image = load_image('menu_image.jpeg')
     menu_sprite_background.rect = menu_sprite_background.image.get_rect()
     button_sprite = pygame.sprite.Sprite(menu_sprites)
     button_sprite.image = load_image('main_text.xcf')
@@ -86,7 +89,7 @@ def create_menu():
     button_sprite.rect.y = 120
     pygame.mouse.set_visible(False)
     cursor_sprite = pygame.sprite.Sprite(menu_sprites)
-    cursor_sprite.image = load_image('cursor_image.png')
+    cursor_sprite.image = load_image('cursor_image.jpeg')
     cursor_sprite.rect = cursor_sprite.image.get_rect()
     coords = pygame.mouse.get_pos()
     cursor_sprite.rect.center = coords
