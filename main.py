@@ -2,6 +2,7 @@
 import pygame
 from decor import *
 from player import *
+from pygame.constants import K_e
 
 
 pygame.init()
@@ -32,6 +33,8 @@ def start_game(player_class):
         for sprite in group:
             all_sprites.add(sprite)
     pl = create_player(WIDTH // 2, HEIGHT // 2, player_group, enemies, bullets, size, player_class, all_sprites)
+    if pl.type == 'warrior':
+        sword = Sword(player_group, pl, 'top')
     all_sprites.draw(screen)
     while running:
         for event in pygame.event.get():
@@ -62,12 +65,16 @@ def start_game(player_class):
                 pl.rect.center = WIDTH // 2, HEIGHT // 2
                 if new:
                     for coords in [(0, 0), (WIDTH - 70, 0), (0, HEIGHT - 70), (WIDTH, HEIGHT)]:
-                        create_enemy(coords[0], coords[1], pl, all_sprites, enemies, bullets)
+                        create_enemy(coords[0], coords[1], pl, all_sprites, enemies, bullets, player_group)
+        if pygame.key.get_pressed()[K_e] and pl.reload <= 0:
+            sword.swinging = -1
+            pl.reload = 30
         if not pl.alive():
             running = False
             for sprited in all_sprites:
                 all_sprites.remove(sprited)
             create_menu()
+            break
         if running:
             screen.fill((0, 0, 0))
             all_sprites.draw(screen)

@@ -2,6 +2,18 @@
 import pygame
 from pygame.constants import K_w, K_a, K_s, K_d, K_UP, K_DOWN, K_RIGHT, K_LEFT
 from decor import *
+import os
+import sys
+
+
+def load_image(name, colorkey=None):
+    fullname = 'data/' + name
+    if not os.path.isfile(fullname):
+        print(f"Файл с изображением '{fullname}' не найден")
+        sys.exit()
+    image = pygame.image.load(fullname)
+    return image
+
 
 BULLET_SPEED = 6
 YELLOW = pygame.Color('yellow')
@@ -52,7 +64,7 @@ class Player(pygame.sprite.Sprite):
             ev = pygame.event.Event(NEW_ROOM)
             pygame.event.post(ev)
 
-        if self.reload <= 0:
+        if self.reload <= 0 and self.type != 'warrior':
             if keystate[K_LEFT]:
                 CHARACTERS[self.type]['attack']('left', self, self.all_sprites, self.bullets)
                 self.reload = CHARACTERS[self.type]['reload']
@@ -121,7 +133,7 @@ class Bullet(pygame.sprite.Sprite):
 
 
 class Enemy(pygame.sprite.Sprite):
-    def __init__(self, x, y, player, bullets_group):
+    def __init__(self, x, y, player, bullets_group, player_group):
         super().__init__()
         self.image = pygame.Surface((40, 40))
         self.rect = self.image.get_rect()
@@ -131,6 +143,7 @@ class Enemy(pygame.sprite.Sprite):
         self.speedx, self.speedy = 0, 0
         self.target = player
         self.bullet_group = bullets_group
+        self.player_group = player_group
 
     def update(self):
         if self.rect.centerx > self.target.rect.centerx:
@@ -153,6 +166,114 @@ class Enemy(pygame.sprite.Sprite):
                 else:
                     collided.kill()
             self.kill()
+        collide_list = pygame.sprite.spritecollide(self, self.player_group, False)
+        for collided in collide_list:
+            if type(collided) == Sword:
+                self.kill()
+
+
+class Sword(pygame.sprite.Sprite):
+    def __init__(self, group, player, side):
+        super().__init__(group)
+        self.image = pygame.transform.flip(load_image('sword_on.xcf'), True, False)
+        self.rect = self.image.get_rect()
+        self.rect.bottom, self.rect.right = player.rect.top + 5, player.rect.left + 5
+        self.player = player
+        self.swinging = -2
+        self.start_image = self.image
+        self.swinged = False
+        self.countdown = 1
+        self.side = side
+        self.main_image = self.image
+
+    def update(self):
+        keystate = pygame.key.get_pressed()
+        self.main_image = load_image('sword_on.xcf')
+        if keystate[K_UP] and not self.side == 'top' and self.swinging == -2:
+            self.player.reload = 30
+            self.side = 'top'
+            if self.swinged:
+                rotate(self, pygame.transform.flip(self.main_image, False, False), 0)
+            else:
+                rotate(self, pygame.transform.flip(self.main_image, True, False), 0)
+        elif keystate[K_DOWN] and not self.side == 'bottom' and self.swinging == -2:
+            self.player.reload = 30
+            self.side = 'bottom'
+            if self.swinged:
+                rotate(self, pygame.transform.flip(self.main_image, False, False), 0)
+            else:
+                rotate(self, pygame.transform.flip(self.main_image, True, False), 0)
+        elif keystate[K_LEFT] and not self.side == 'left' and self.swinging == -2:
+            self.player.reload = 30
+            self.side = 'left'
+            if self.swinged:
+                rotate(self, self.main_image, -90)
+            else:
+                rotate(self, pygame.transform.flip(self.main_image, True, False), -90)
+        elif keystate[K_RIGHT] and not self.side == 'right' and self.swinging == -2:
+            self.player.reload = 30
+            self.side = 'right'
+            if self.swinged:
+                rotate(self, self.main_image, -90)
+            else:
+                rotate(self, pygame.transform.flip(self.main_image, True, False), -90)
+        if self.swinging == -2:
+            self.start_image = self.image
+        if self.side == 'top':
+            if self.swinging == 1:
+                self.rect.bottom, self.rect.left = self.player.rect.top + 5, self.player.rect.centerx
+            if (self.swinged and not self.swinging == 2) or (self.swinging == 2 and not self.swinged):
+                self.rect.bottom, self.rect.left = self.player.rect.top + 5, self.player.rect.right - 20
+            else:
+                self.rect.bottom, self.rect.right = self.player.rect.top + 5, self.player.rect.left + 20
+        elif self.side == 'bottom':
+            if self.swinging == 1:
+                self.rect.top, self.rect.left = self.player.rect.bottom - 5, self.player.rect.centerx
+            if (self.swinged and not self.swinging == 2) or (self.swinging == 2 and not self.swinged):
+                self.rect.top, self.rect.left = self.player.rect.bottom - 5, self.player.rect.right - 20
+            else:
+                self.rect.top, self.rect.right = self.player.rect.bottom - 5, self.player.rect.left + 20
+        elif self.side == 'left':
+            if self.swinging == 1:
+                self.rect.top, self.rect.left = self.player.rect.centery, self.player.rect.left + 5
+            if (self.swinged and not self.swinging == 2) or (self.swinging == 2 and not self.swinged):
+                self.rect.top, self.rect.right = self.player.rect.bottom - 20, self.player.rect.left + 5
+            else:
+                self.rect.bottom, self.rect.right = self.player.rect.top + 20, self.player.rect.left + 5
+        elif self.side == 'right':
+            if self.swinging == 1:
+                self.rect.top, self.rect.right = self.player.rect.centery, self.player.rect.right - 5
+            if (self.swinged and not self.swinging == 2) or (self.swinging == 2 and not self.swinged):
+                self.rect.top, self.rect.left = self.player.rect.bottom - 20, self.player.rect.right - 5
+            else:
+                self.rect.bottom, self.rect.left = self.player.rect.top + 20, self.player.rect.right - 5
+        if self.swinging != -2 and not self.countdown:
+            self.swinging += 1
+            angle = -45
+            if self.swinged:
+                angle = 45
+            if self.side in ['left', 'bottom']:
+                angle = -angle
+            rotate(self, self.start_image, (self.swinging + 1) * angle)
+            self.countdown = 1
+        elif self.countdown:
+            self.countdown -= 1
+        if self.swinging == 3:
+            self.swinging = -2
+            self.swinged = not self.swinged
+            self.main_image = pygame.transform.flip(self.image, False, True)
+            if self.side in ['top', 'bottom']:
+                self.image = pygame.transform.flip(self.image, False, True)
+            else:
+                self.image = pygame.transform.flip(self.image, True, False)
+            self.start_image = self.image
+
+
+def rotate(target, image, angle):
+    coords = target.rect.center
+    target.image = pygame.transform.rotate(image, angle)
+    target.rect = target.image.get_rect()
+    target.rect.center = coords
 
 
 def create_player(x, y, sprites_group, enemy_group, bullet_group, size, player_type, all_sprites):
@@ -167,8 +288,8 @@ def create_bullet(side, player, sprites_group, bullets_group):
     bullets_group.add(bul)
 
 
-def create_enemy(x, y, player, sprites_group, enemy_group, bullets_group):
-    en = Enemy(x, y, player, bullets_group)
+def create_enemy(x, y, player, sprites_group, enemy_group, bullets_group, player_group):
+    en = Enemy(x, y, player, bullets_group, player_group)
     sprites_group.add(en)
     enemy_group.add(en)
 
