@@ -3,20 +3,31 @@ import pygame
 from decor import *
 from player import *
 from pygame.constants import K_e
+from walls import *
 
 
 pygame.init()
-size = WIDTH, HEIGHT = 1060, 560
+WIDTH, HEIGHT = 1060, 560
+size = WIDTH, HEIGHT + 50  # Добавляется 50-пиксельное пространство для интерфейса, которое остальная игра не учитывает
 FPS = 120
 LEFT = 30
 TOP = 30
 CELL_SIZE = 50
 
 screen = pygame.display.set_mode(size)
+size = WIDTH, HEIGHT
 menu_sprites = pygame.sprite.Group()
 class_sprites = pygame.sprite.Group()
 clock = pygame.time.Clock()
 room_sprites = get_decorate()
+
+
+def render_text(x, y, text, surface):
+    font = pygame.font.Font(None, 50)
+    text = font.render(text, True, (255, 255, 255))
+    text_x = x
+    text_y = y
+    surface.blit(text, (text_x, text_y))
 
 
 def start_game(player_class):
@@ -28,11 +39,21 @@ def start_game(player_class):
     enemies = pygame.sprite.Group()
     bullets = pygame.sprite.Group()
     player_group = pygame.sprite.Group()
+    walls = pygame.sprite.Group()
+    doors = pygame.sprite.Group()
+    wall1 = Wall(0, 0, 1060, 31, [walls, player_group])
+    wall2 = Wall(0, 0, 31, 560, [walls, player_group])
+    wall3 = Wall(1030, 0, 31, 560, [walls, player_group])
+    wall4 = Wall(0, 530, 1060, 31, [walls, player_group])
+    door1 = Door(size, 'left', [doors, player_group])
+    door1.set_closed()
+    door2 = Door(size, 'right', [doors, player_group])
     room_sprites = get_decorate()
     for group in room_sprites:
         for sprite in group:
             all_sprites.add(sprite)
-    pl = create_player(WIDTH // 2, HEIGHT // 2, player_group, enemies, bullets, size, player_class, all_sprites)
+    pl = create_player(WIDTH // 2, HEIGHT // 2, player_group, enemies, bullets, size, player_class, all_sprites, walls,
+                       doors)
     if pl.type == 'warrior':
         sword = Sword(player_group, pl, 'top')
     all_sprites.draw(screen)
@@ -43,17 +64,25 @@ def start_game(player_class):
                 pygame.quit()
             if event.type == NEW_ROOM:
                 new = False
-                if pl.rect.x - LEFT <= CELL_SIZE:
+                if pl.rect.x - LEFT <= CELL_SIZE * 3:
                     if cur_ind != 0:
                         cur_ind -= 1
+                        if cur_ind == 0:
+                            door1.set_closed()
+                        pl.rect.center = WIDTH - 128, HEIGHT // 2
                     else:
                         continue
                 else:
                     cur_ind += 1
-                    new = True
+                    pl.rect.center = 128, HEIGHT // 2
+                    door1.set_opened()
                 if cur_ind >= len(boards):
+                    door1.set_closed()
                     board = Board(20, 10)
                     boards.append(board)
+                    new = True
+                    for door in doors:
+                        door.set_closed()
                 cur_board = boards[cur_ind]
                 for sprite in all_sprites:
                     sprite.kill()
@@ -62,9 +91,8 @@ def start_game(player_class):
                 for group in room_sprites:
                     for sprite in group:
                         all_sprites.add(sprite)
-                pl.rect.center = WIDTH // 2, HEIGHT // 2
                 if new:
-                    for coords in [(0, 0), (WIDTH - 70, 0), (0, HEIGHT - 70), (WIDTH, HEIGHT)]:
+                    for coords in [(100, 100), (WIDTH - 100, 100), (100, HEIGHT - 100), (WIDTH - 100, HEIGHT - 100)]:
                         create_enemy(coords[0], coords[1], pl, all_sprites, enemies, bullets, player_group)
         if pygame.key.get_pressed()[K_e] and pl.reload <= 0:
             sword.swinging = -1
@@ -81,6 +109,7 @@ def start_game(player_class):
             all_sprites.update()
             player_group.update()
             player_group.draw(screen)
+            render_text(20, 570, 'Ваше здоровье: ' + str(pl.health), screen)
             pygame.display.flip()
             clock.tick(FPS)
 

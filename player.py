@@ -27,9 +27,10 @@ CELL_SIZE = 50
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, x, y, sprites_group, enemy_group, bullet_group, size, type, all_sprites):
+    def __init__(self, x, y, sprites_group, enemy_group, bullet_group, size, type, all_sprites, walls, doors):
         super().__init__()
         self.image = pygame.Surface((40, 40))
+        self.walls = walls
         self.rect = self.image.get_rect()
         self.image.fill(BLUE)
         self.rect.centerx = x
@@ -43,55 +44,57 @@ class Player(pygame.sprite.Sprite):
         self.width, self.height = size
         self.sprites, self.bullets = sprites_group, bullet_group
         self.all_sprites = all_sprites
+        self.doors = doors
 
     def update(self):
         self.speedx = 0
         self.speedy = 0
         keystate = pygame.key.get_pressed()
-        if keystate[K_a] and self.rect.left > 0:
+        if keystate[K_a] and self.rect.left > 31:
             self.speedx = -self.speed
-        elif keystate[K_d] and self.rect.right < self.width:
+        elif keystate[K_d] and self.rect.right < self.width - 31:
             self.speedx = self.speed
-        if keystate[K_w] and self.rect.top > 0:
+        if keystate[K_w] and self.rect.top > 31:
             self.speedy = -self.speed
-        elif keystate[K_s] and self.rect.bottom < self.height:
+        elif keystate[K_s] and self.rect.bottom < self.height - 31:
             self.speedy = self.speed
         self.rect.x += self.speedx
         self.rect.y += self.speedy
 
-        if (self.rect.x > self.width - 2 * LEFT - CELL_SIZE // 2 or self.rect.x < LEFT) and (self.height - 2 * TOP) // 2 - CELL_SIZE < \
-                self.rect.y < (self.height - 2 * TOP) // 2 + CELL_SIZE and len(self.enemies) == 0:
+        if pygame.sprite.spritecollide(self, self.doors, False) and len(self.enemies) == 0:
             ev = pygame.event.Event(NEW_ROOM)
             pygame.event.post(ev)
 
         if self.reload <= 0 and self.type != 'warrior':
             if keystate[K_LEFT]:
-                CHARACTERS[self.type]['attack']('left', self, self.all_sprites, self.bullets)
+                CHARACTERS[self.type]['attack']('left', self, self.all_sprites, self.bullets, self.walls)
                 self.reload = CHARACTERS[self.type]['reload']
             elif keystate[K_RIGHT]:
-                CHARACTERS[self.type]['attack']('right', self, self.all_sprites, self.bullets)
+                CHARACTERS[self.type]['attack']('right', self, self.all_sprites, self.bullets, self.walls)
                 self.reload = CHARACTERS[self.type]['reload']
             elif keystate[K_UP]:
-                CHARACTERS[self.type]['attack']('top', self, self.all_sprites, self.bullets)
+                CHARACTERS[self.type]['attack']('top', self, self.all_sprites, self.bullets, self.walls)
                 self.reload = CHARACTERS[self.type]['reload']
             elif keystate[K_DOWN]:
-                CHARACTERS[self.type]['attack']('down', self, self.all_sprites, self.bullets)
+                CHARACTERS[self.type]['attack']('down', self, self.all_sprites, self.bullets, self.walls)
                 self.reload = CHARACTERS[self.type]['reload']
         self.reload -= 1
-        if pygame.sprite.spritecollide(self, self.enemies, True):
+        collided_enemies = pygame.sprite.spritecollide(self, self.enemies, True)
+        for _ in collided_enemies:
             self.health -= 1
         if self.health == 0:
             self.kill()
 
 
 class Bullet(pygame.sprite.Sprite):
-    def __init__(self, side, pl):
+    def __init__(self, side, pl, walls):
         super().__init__()
         self.image = pygame.Surface((20, 20))
         self.rect = self.image.get_rect()
         self.image.fill(YELLOW)
         self.explosive = False
         self.exploded = False
+        self.walls = walls
         if pl.type == 'wizard':
             self.explosive = True
         if side == 'left' or side == 'right':
@@ -120,6 +123,8 @@ class Bullet(pygame.sprite.Sprite):
         if self.exploded:
             self.countdown -= 1
         if not self.countdown:
+            self.kill()
+        if pygame.sprite.spritecollide(self, self.walls, False):
             self.kill()
 
     def explode(self):
@@ -159,17 +164,14 @@ class Enemy(pygame.sprite.Sprite):
         self.speedy, self.speedx = 0, 0
         # Проверка столкновений
         collide_list = pygame.sprite.spritecollide(self, self.bullet_group, False)
-        if collide_list:
-            for collided in collide_list:
-                if collided.explosive:
-                    collided.explode()
-                else:
-                    collided.kill()
-            self.kill()
-        collide_list = pygame.sprite.spritecollide(self, self.player_group, False)
+        collide_list2 = pygame.sprite.spritecollide(self, self.player_group, False)
+        collide_list += collide_list2
         for collided in collide_list:
-            if type(collided) == Sword:
+            if type(collided) == Sword and collided.swinging != -2 or type(collided) == Bullet:
                 self.kill()
+                if len(self.target.enemies) == 0:
+                    for door in self.target.doors:
+                        door.set_opened()
 
 
 class Sword(pygame.sprite.Sprite):
@@ -276,14 +278,14 @@ def rotate(target, image, angle):
     target.rect.center = coords
 
 
-def create_player(x, y, sprites_group, enemy_group, bullet_group, size, player_type, all_sprites):
-    pl = Player(x, y, sprites_group, enemy_group, bullet_group, size, player_type, all_sprites)
+def create_player(x, y, sprites_group, enemy_group, bullet_group, size, player_type, all_sprites, walls, doors):
+    pl = Player(x, y, sprites_group, enemy_group, bullet_group, size, player_type, all_sprites, walls, doors)
     sprites_group.add(pl)
     return pl
 
 
-def create_bullet(side, player, sprites_group, bullets_group):
-    bul = Bullet(side, player)
+def create_bullet(side, player, sprites_group, bullets_group, walls):
+    bul = Bullet(side, player, walls)
     sprites_group.add(bul)
     bullets_group.add(bul)
 
