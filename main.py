@@ -4,6 +4,7 @@ from decor import *
 from player import *
 from pygame.constants import K_e
 from walls import *
+from Death import death
 
 
 pygame.init()
@@ -33,10 +34,10 @@ def render_text(x, y, text, surface):
 def start_game(player_class):
     global cur_ind
     global LEFT, TOP, CELL_SIZE
-    print(player_class)
     running = True
     all_sprites = pygame.sprite.Group()
     enemies = pygame.sprite.Group()
+    enemies_bullets = pygame.sprite.Group()
     bullets = pygame.sprite.Group()
     player_group = pygame.sprite.Group()
     walls = pygame.sprite.Group()
@@ -45,9 +46,11 @@ def start_game(player_class):
     wall2 = Wall(0, 0, 31, 560, [walls, player_group])
     wall3 = Wall(1030, 0, 31, 560, [walls, player_group])
     wall4 = Wall(0, 530, 1060, 31, [walls, player_group])
-    door1 = Door(size, 'left', [doors, player_group])
+    door1 = Door(size, 'left', [doors])
     door1.set_closed()
-    door2 = Door(size, 'right', [doors, player_group])
+    door2 = Door(size, 'right', [doors])
+    DECREASE_POINTS_EVENT = pygame.USEREVENT + 2
+    pygame.time.set_timer(DECREASE_POINTS_EVENT, 360)
     room_sprites = get_decorate()
     for group in room_sprites:
         for sprite in group:
@@ -62,6 +65,8 @@ def start_game(player_class):
             if event.type == pygame.QUIT:
                 running = False
                 pygame.quit()
+            if event.type == DECREASE_POINTS_EVENT:
+                pl.points -= 1
             if event.type == NEW_ROOM:
                 new = False
                 if pl.rect.x - LEFT <= CELL_SIZE * 3:
@@ -69,6 +74,9 @@ def start_game(player_class):
                         cur_ind -= 1
                         if cur_ind == 0:
                             door1.set_closed()
+                        else:
+                            door1.set_opened()
+                            door2.set_closed()
                         pl.rect.center = WIDTH - 128, HEIGHT // 2
                     else:
                         continue
@@ -81,6 +89,8 @@ def start_game(player_class):
                     board = Board(20, 10)
                     boards.append(board)
                     new = True
+                    pl.rooms += 1
+                    pl.points += 90
                     for door in doors:
                         door.set_closed()
                 cur_board = boards[cur_ind]
@@ -93,7 +103,8 @@ def start_game(player_class):
                         all_sprites.add(sprite)
                 if new:
                     for coords in [(100, 100), (WIDTH - 100, 100), (100, HEIGHT - 100), (WIDTH - 100, HEIGHT - 100)]:
-                        create_enemy(coords[0], coords[1], pl, all_sprites, enemies, bullets, player_group)
+                        create_enemy(coords[0], coords[1], pl, all_sprites, enemies, bullets, player_group,
+                                     'shooting-left', enemies_bullets)
         if pygame.key.get_pressed()[K_e] and pl.reload <= 0:
             sword.swinging = -1
             pl.reload = 30
@@ -101,15 +112,22 @@ def start_game(player_class):
             running = False
             for sprited in all_sprites:
                 all_sprites.remove(sprited)
+            death(pl)
             create_menu()
             break
+        if len(enemies) == 0:
+            door1.set_opened()
+            door2.set_opened()
         if running:
             screen.fill((0, 0, 0))
+            doors.draw(screen)
+            doors.update()
             all_sprites.draw(screen)
             all_sprites.update()
             player_group.update()
             player_group.draw(screen)
             render_text(20, 570, 'Ваше здоровье: ' + str(pl.health), screen)
+            render_text(500, 570, 'Ваши очки: ' + str(pl.points), screen)
             pygame.display.flip()
             clock.tick(FPS)
 
@@ -147,7 +165,7 @@ def select_class():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-                pygame.quit()
+                sys.exit()
             if event.type == pygame.MOUSEMOTION:
                 coords = pygame.mouse.get_pos()
                 cursor_sprite.rect.x, cursor_sprite.rect.y = coords
