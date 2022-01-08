@@ -1,0 +1,13 @@
+ShootingEnemy 948-98 right
+CommonEnemy 325-131
+CommonEnemy 369-155
+CommonEnemy 397-198
+CommonEnemy 415-250
+CommonEnemy 416-300
+CommonEnemy 405-342
+CommonEnemy 368-386
+CommonEnemy 318-433
+ShootingEnemy 240-33 top
+ShootingEnemy 311-468 bottom
+ShootingEnemy 161-472 bottom
+ShootingEnemy 141-32 top
