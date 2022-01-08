@@ -5,6 +5,8 @@ from player import *
 from pygame.constants import K_e
 from walls import *
 from Death import death
+from random import randint
+from add_room import *
 import os
 
 
@@ -32,7 +34,7 @@ def render_text(x, y, text, surface):
     surface.blit(text, (text_x, text_y))
 
 
-def start_game(player_class):
+def start_game(player_class, loading_level=False):
     global cur_ind
     global LEFT, TOP, CELL_SIZE
     running = True
@@ -43,10 +45,10 @@ def start_game(player_class):
     player_group = pygame.sprite.Group()
     walls = pygame.sprite.Group()
     doors = pygame.sprite.Group()
-    wall1 = Wall(0, 0, 1060, 31, [walls, player_group])
-    wall2 = Wall(0, 0, 31, 560, [walls, player_group])
-    wall3 = Wall(1030, 0, 31, 560, [walls, player_group])
-    wall4 = Wall(0, 530, 1060, 31, [walls, player_group])
+    wall1 = Wall(0, 0, [walls, player_group], 'horizontalzerodayn.xcf')
+    wall2 = Wall(0, 0, [walls, player_group], 'verticalwall.xcf')
+    wall3 = Wall(1030, 0, [walls, player_group], 'verticalwall.xcf')
+    wall4 = Wall(0, 530, [walls, player_group], 'horizontalzerodayn.xcf')
     door1 = Door(size, 'left', [doors])
     door1.set_closed()
     door2 = Door(size, 'right', [doors])
@@ -60,14 +62,17 @@ def start_game(player_class):
                        doors)
     if pl.type == 'warrior':
         sword = Sword(player_group, pl, 'top')
+    if loading_level:
+        load_from_file(loading_level, pl, all_sprites, enemies, bullets, player_group,
+                       enemies_bullets)
     all_sprites.draw(screen)
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
                 pygame.quit()
-            if event.type == DECREASE_POINTS_EVENT:
-                pl.points -= 1
+            if event.type == DECREASE_POINTS_EVENT and pl.points >= 3:
+                pl.points -= 3
             if event.type == NEW_ROOM:
                 new = False
                 if pl.rect.x - LEFT <= CELL_SIZE * 3:
@@ -77,7 +82,7 @@ def start_game(player_class):
                             door1.set_closed()
                         else:
                             door1.set_opened()
-                            door2.set_closed()
+                            door2.set_opened()
                         pl.rect.center = WIDTH - 128, HEIGHT // 2
                     else:
                         continue
@@ -103,7 +108,8 @@ def start_game(player_class):
                     for sprite in group:
                         all_sprites.add(sprite)
                 if new:
-                    load_from_file('level6.txt', pl, all_sprites, enemies, bullets, player_group, enemies_bullets)
+                    load_from_file('level' + str(randint(1, 5)) + '.txt', pl, all_sprites, enemies, bullets,
+                                   player_group, enemies_bullets)
         if pygame.key.get_pressed()[K_e] and pl.reload <= 0:
             sword.swinging = -1
             pl.reload = 30
@@ -111,12 +117,16 @@ def start_game(player_class):
             running = False
             for sprited in all_sprites:
                 all_sprites.remove(sprited)
-            death(pl)
+            if not loading_level:
+                death(pl)
             create_menu()
             break
-        if len(enemies) == 0:
+        if len(enemies) == 0 and cur_ind != 0:
             door1.set_opened()
             door2.set_opened()
+        if len(enemies) != 0:
+            door1.set_closed()
+            door2.set_closed()
         if running:
             screen.fill((0, 0, 0))
             doors.draw(screen)
@@ -131,24 +141,25 @@ def start_game(player_class):
             clock.tick(FPS)
 
 
-
 def load_from_file(filename, pl, all_sprites, enemies, bullets, player_group, enemies_bullets):
     if os.path.isfile('levels/' + filename):
         with open('levels/' + filename, 'r', encoding='utf-8') as savefile:
             lines = savefile.readlines()
             for j in range(len(lines)):
-                lines[j] = lines[j].split()
-                lines[j][1] = lines[j][1].split('-')
-                lines[j][1][0], lines[j][1][1] = int(lines[j][1][0]), int(lines[j][1][1])
-                lines[j][1] = tuple(lines[j][1])
+                if lines[j] != '':
+                    lines[j] = lines[j].split()
+                    lines[j][1] = lines[j][1].split('-')
+                    lines[j][1][0], lines[j][1][1] = int(lines[j][1][0]), int(lines[j][1][1])
+                    lines[j][1] = tuple(lines[j][1])
             for line in lines:
                 if line[0] == 'CommonEnemy':
-                    create_enemy(line[1][0], line[1][1], pl, all_sprites, enemies, bullets, player_group, 'common')
+                    create_enemy(line[1][0] - 20, line[1][1] - 20, pl, all_sprites, enemies, bullets, player_group,
+                                 'common')
                 if line[0] == 'ShootingEnemy':
-                    create_enemy(line[1][0], line[1][1], pl, all_sprites, enemies, bullets, player_group,
+                    create_enemy(line[1][0] - 20, line[1][1] - 20, pl, all_sprites, enemies, bullets, player_group,
                                  'shooting-' + line[2], enemies_bullets)
                 if line[0] == 'Player':
-                    pl.rect.center = line[1]
+                    pl.rect.center = line[1][0] - 20, line[1][1] - 20
 
 
 # Александр Ч.
@@ -160,20 +171,17 @@ def select_class():
     menu_sprite_background.image = load_image('menu_image.png')
     menu_sprite_background.rect = menu_sprite_background.image.get_rect()
     warrior = pygame.sprite.Sprite(class_sprites)
-    warrior.image = pygame.Surface((40, 40))
-    warrior.image.fill((255, 0, 0))
+    warrior.image = load_image('warrior.xcf')
     warrior.rect = warrior.image.get_rect()
     warrior.rect.x = 40
     warrior.rect.y = 205
     archer = pygame.sprite.Sprite(class_sprites)
-    archer.image = pygame.Surface((40, 40))
-    archer.image.fill((0, 255, 0))
+    archer.image = load_image('archer.xcf')
     archer.rect = archer.image.get_rect()
     archer.rect.x = 380
     archer.rect.y = 205
     wizard = pygame.sprite.Sprite(class_sprites)
-    wizard.image = pygame.Surface((40, 40))
-    wizard.image.fill((0, 0, 255))
+    wizard.image = load_image('mage.xcf')
     wizard.rect = wizard.image.get_rect()
     wizard.rect.x = 720
     wizard.rect.y = 205
@@ -225,6 +233,12 @@ def create_menu():
     button_sprite.rect = button_sprite.image.get_rect()
     button_sprite.rect.x = 250
     button_sprite.rect.y = 120
+    add_loc_btn = pygame.sprite.Sprite(menu_sprites)
+    add_loc_btn.image = pygame.Surface((100, 50))
+    add_loc_btn.image.fill((0, 0, 255))
+    add_loc_btn.rect = add_loc_btn.image.get_rect()
+    add_loc_btn.rect.x = 250
+    add_loc_btn.rect.y = 320
     pygame.mouse.set_visible(False)
     cursor_sprite = pygame.sprite.Sprite(menu_sprites)
     cursor_sprite.image = load_image('cursor_image.png')
@@ -246,6 +260,12 @@ def create_menu():
                     for spritet in menu_sprites:
                         spritet.kill()
                     start_game(select_class())
+                if pygame.sprite.collide_rect(cursor_sprite, add_loc_btn):
+                    running = False
+                    for spritet in menu_sprites:
+                        spritet.kill()
+                    level = your_room()
+                    start_game(select_class(), level)
         if running:
             screen.fill((0, 0, 0))
             menu_sprites.draw(screen)

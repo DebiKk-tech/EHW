@@ -1,0 +1,10 @@
+ShootingEnemy 208-52 top
+ShootingEnemy 656-52 top
+ShootingEnemy 179-465 bottom
+ShootingEnemy 657-461 bottom
+CommonEnemy 579-166
+CommonEnemy 511-173
+CommonEnemy 469-222
+CommonEnemy 482-271
+CommonEnemy 526-323
+CommonEnemy 608-339

@@ -1,11 +1,21 @@
 import pygame
 from pygame.constants import *
 import os
+import sys
 
 pygame.init()
 size = width, height = 1000, 560
 screen = pygame.display.set_mode(size)
 all_sprites = pygame.sprite.Group()
+
+
+def load_image(name, colorkey=None):
+    fullname = 'data/' + name
+    if not os.path.isfile(fullname):
+        print(f"Файл с изображением '{fullname}' не найден")
+        sys.exit()
+    image = pygame.image.load(fullname)
+    return image
 
 
 class RedactorSprite(pygame.sprite.Sprite):
@@ -20,19 +30,26 @@ class RedactorSprite(pygame.sprite.Sprite):
 class Player(RedactorSprite):
     def __init__(self, pos, type):
         super().__init__(pos, type)
-        self.image.fill((0, 0, 255))
+        self.image = load_image('warrior.xcf')
 
 
 class CommonEnemy(RedactorSprite):
     def __init__(self, pos, type):
         super().__init__(pos, type)
-        self.image.fill((220, 20, 60))
+        self.image = load_image('enemy_war.xcf')
 
 
 class ShootingEnemy(RedactorSprite):
     def __init__(self, pos, type):
         super().__init__(pos, type)
-        self.image.fill((255, 255, 0))
+        if type == 'top':
+            self.image = load_image('enemy_arc_dayn.xcf')
+        if type == 'left':
+            self.image = load_image('enemy_arc_right.xcf')
+        if type == 'right':
+            self.image = load_image('enemy_arc_left.xcf')
+        if type == 'bottom':
+            self.image = load_image('enemy_arc_top.xcf')
 
 
 class Button(pygame.sprite.Sprite):
@@ -55,7 +72,7 @@ def save_into_file():
     with open(name, 'w', encoding='utf-8') as savefile:
         for sprite in all_sprites:
             if type(sprite) != Button:
-                stroka = str(type(sprite).__name__) + ' ' + str(sprite.rect.x) + '-' + str(sprite.rect.y)
+                stroka = str(type(sprite).__name__) + ' ' + str(sprite.rect.centerx) + '-' + str(sprite.rect.centery)
                 if sprite.type:
                     stroka += ' ' + sprite.type
                 stroka += '\n'
@@ -71,7 +88,7 @@ while running:
         if event.type == pygame.QUIT:
             running = False
         if event.type == pygame.MOUSEBUTTONDOWN:
-            if event.pos[1] <= 500:
+            if 20 <= event.pos[1] <= 480:
                 if event.button == 1:
                     is_player = False
                     for sprite in all_sprites:

@@ -29,10 +29,14 @@ CELL_SIZE = 50
 class Player(pygame.sprite.Sprite):
     def __init__(self, x, y, sprites_group, enemy_group, bullet_group, size, type, all_sprites, walls, doors):
         super().__init__()
-        self.image = pygame.Surface((40, 40))
+        if type == 'archer':
+            self.image = load_image('archer.xcf')
+        if type == 'warrior':
+            self.image = load_image('warrior.xcf')
+        if type == 'wizard':
+            self.image = load_image('mage.xcf')
         self.walls = walls
         self.rect = self.image.get_rect()
-        self.image.fill(BLUE)
         self.rect.centerx = x
         self.rect.centery = y
         self.type = type
@@ -93,9 +97,8 @@ class Player(pygame.sprite.Sprite):
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, side, pl, walls):
         super().__init__()
-        self.image = pygame.Surface((20, 20))
+        self.image = load_image('hero_bullet.xcf')
         self.rect = self.image.get_rect()
-        self.image.fill(YELLOW)
         self.explosive = False
         self.exploded = False
         self.walls = walls
@@ -137,16 +140,15 @@ class Bullet(pygame.sprite.Sprite):
         self.exploded = True
         self.speedx, self.speedy = 0, 0
         coords = self.rect.center
-        self.image = pygame.Surface((50, 50))
+        self.image = load_image('EXXXPLOSION.xcf')
         self.rect = self.image.get_rect()
-        self.image.fill(YELLOW)
         self.rect.center = coords
 
 
 class Enemy(pygame.sprite.Sprite):
-    def __init__(self, x, y, player, bullets_group, player_group):
+    def __init__(self, x, y, player, bullets_group, player_group, image):
         super().__init__()
-        self.image = pygame.Surface((40, 40))
+        self.image = image
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
@@ -172,8 +174,7 @@ class Enemy(pygame.sprite.Sprite):
 
 class CommonEnemy(Enemy):
     def __init__(self, x, y, player, bullets_group, player_group):
-        super().__init__(x, y, player, bullets_group, player_group)
-        self.image.fill((220, 20, 60))
+        super().__init__(x, y, player, bullets_group, player_group, load_image('enemy_war.xcf'))
 
     def update(self):
         super().update()
@@ -192,8 +193,14 @@ class CommonEnemy(Enemy):
 
 class ShootingEnemy(Enemy):
     def __init__(self, x, y, player, bullets_group, player_group, type, en_bullets):
-        super().__init__(x, y, player, bullets_group, player_group)
-        self.image.fill((255, 255, 0))
+        if type == 'bottom':
+            super().__init__(x, y, player, bullets_group, player_group, load_image('enemy_arc_top.xcf'))
+        if type == 'left':
+            super().__init__(x, y, player, bullets_group, player_group, load_image('enemy_arc_right.xcf'))
+        if type == 'right':
+            super().__init__(x, y, player, bullets_group, player_group, load_image('enemy_arc_left.xcf'))
+        if type == 'top':
+            super().__init__(x, y, player, bullets_group, player_group, load_image('enemy_arc_dayn.xcf'))
         self.type = type
         self.en_bullets = en_bullets
         self.reload = 120
@@ -231,8 +238,7 @@ class ShootingEnemy(Enemy):
 class EnemyBullet(pygame.sprite.Sprite):
     def __init__(self, creator, group):
         super().__init__(group)
-        self.image = pygame.Surface((20, 20))
-        self.image.fill((255, 0, 0))
+        self.image = load_image('enemy_bullet.xcf')
         self.rect = self.image.get_rect()
         if creator.type in ['top', 'bottom']:
             self.speedx = 0

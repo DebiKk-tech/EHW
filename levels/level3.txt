@@ -1,0 +1,9 @@
+ShootingEnemy 937-39 right
+ShootingEnemy 940-90 right
+ShootingEnemy 933-169 right
+ShootingEnemy 933-243 right
+ShootingEnemy 933-310 right
+ShootingEnemy 934-381 right
+ShootingEnemy 940-437 right
+ShootingEnemy 68-26 top
+ShootingEnemy 76-456 bottom

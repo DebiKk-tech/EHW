@@ -1,23 +1,32 @@
 # Талдин М.
 import pygame
+import os
+import sys
+
+
+def load_image(name, colorkey=None):
+    fullname = 'data/' + name
+    if not os.path.isfile(fullname):
+        print(f"Файл с изображением '{fullname}' не найден")
+        sys.exit()
+    image = pygame.image.load(fullname)
+    return image
 
 
 class Wall(pygame.sprite.Sprite):
-    def __init__(self, x, y, width, height, groups):
+    def __init__(self, x, y, groups, image):
         super().__init__()
         for group in groups:
             group.add(self)
-        self.image = pygame.Surface((width, height))
+        self.image = load_image(image)
         self.rect = self.image.get_rect()
         self.rect.x, self.rect.y = x, y
-        self.image.fill((255, 255, 255))
 
 
 class Door(pygame.sprite.Sprite):
     def __init__(self, size, type, groups):
         super().__init__()
-        self.image = pygame.Surface((62, 102))
-        self.image.fill((0, 255, 0))  #
+        self.image = load_image('maybeadoor.xcf')
         self.rect = self.image.get_rect()
         self.type = type
         for group in groups:
@@ -31,16 +40,14 @@ class Door(pygame.sprite.Sprite):
 
     def set_opened(self):
         self.opened = True
-        self.image = pygame.Surface((62, 102))
-        self.image.fill((0, 255, 0))
+        self.change_image('maybeadoor.xcf')
 
     def set_closed(self):
         self.opened = False
-        self.image = pygame.Surface((62, 102))
-        self.image.fill((0, 255, 255))
+        self.change_image('locked_door.xcf')
 
     def change_image(self, name):
         coords = self.rect.center
-        self.image = False
+        self.image = load_image(name)
         self.rect = self.image.get_rect()
         self.rect.center = coords
