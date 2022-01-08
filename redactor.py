@@ -95,6 +95,7 @@ while running:
                 mouse.rect = mouse.image.get_rect()
                 mouse.rect.center = event.pos
                 if pygame.sprite.collide_rect(mouse, btn):
+                    save_into_file()
                     running = False
                 mouse.kill()
         if event.type == pygame.KEYDOWN:
@@ -123,5 +124,4 @@ while running:
     all_sprites.update()
     pygame.display.flip()
     img.kill()
-save_into_file()
 pygame.quit()
