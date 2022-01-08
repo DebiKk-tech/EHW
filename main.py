@@ -5,6 +5,7 @@ from player import *
 from pygame.constants import K_e
 from walls import *
 from Death import death
+import os
 
 
 pygame.init()
@@ -102,9 +103,7 @@ def start_game(player_class):
                     for sprite in group:
                         all_sprites.add(sprite)
                 if new:
-                    for coords in [(100, 100), (WIDTH - 100, 100), (100, HEIGHT - 100), (WIDTH - 100, HEIGHT - 100)]:
-                        create_enemy(coords[0], coords[1], pl, all_sprites, enemies, bullets, player_group,
-                                     'shooting-left', enemies_bullets)
+                    load_from_file('level6.txt', pl, all_sprites, enemies, bullets, player_group, enemies_bullets)
         if pygame.key.get_pressed()[K_e] and pl.reload <= 0:
             sword.swinging = -1
             pl.reload = 30
@@ -130,6 +129,29 @@ def start_game(player_class):
             render_text(500, 570, 'Ваши очки: ' + str(pl.points), screen)
             pygame.display.flip()
             clock.tick(FPS)
+
+
+
+def load_from_file(filename, pl, all_sprites, enemies, bullets, player_group, enemies_bullets):
+    if os.path.isfile('levels/' + filename):
+        with open('levels/' + filename, 'r', encoding='utf-8') as savefile:
+            lines = savefile.readlines()
+            for j in range(len(lines)):
+                lines[j] = lines[j].split()
+                lines[j][1] = lines[j][1].split('-')
+                lines[j][1][0], lines[j][1][1] = int(lines[j][1][0]), int(lines[j][1][1])
+                lines[j][1] = tuple(lines[j][1])
+            for line in lines:
+                if line[0] == 'CommonEnemy':
+                    create_enemy(line[1][0], line[1][1], pl, all_sprites, enemies, bullets, player_group, 'common')
+                if line[0] == 'ShootingEnemy':
+                    create_enemy(line[1][0], line[1][1], pl, all_sprites, enemies, bullets, player_group,
+                                 'shooting-' + line[2], enemies_bullets)
+                if line[0] == 'Player':
+                    pl.rect.center = line[1]
+
+
+# Александр Ч.
 
 
 def select_class():
@@ -185,8 +207,6 @@ def select_class():
                     for spritet in class_sprites:
                         spritet.kill()
                     return 'wizard'
-
-                    # start_game()
         if running:
             screen.fill((0, 0, 0))
             class_sprites.draw(screen)

@@ -204,7 +204,7 @@ class ShootingEnemy(Enemy):
         if self.type == 'top' or self.type == 'bottom':
             if self.rect.top > 32 and self.type == 'top':
                 self.speedy = -ENEMY_SPEED
-            elif self.rect.bottom < self.target.width - 32 and self.type == 'bottom':
+            elif self.rect.bottom < self.target.height - 32 and self.type == 'bottom':
                 self.speedy = ENEMY_SPEED
             if self.rect.centerx > self.target.rect.centerx:
                 self.speedx = -ENEMY_SPEED
@@ -213,7 +213,7 @@ class ShootingEnemy(Enemy):
         else:
             if self.rect.left > 32 and self.type == 'left':
                 self.speedx = -ENEMY_SPEED
-            elif self.rect.right < self.target.height - 32 and self.type == 'right':
+            elif self.rect.right < self.target.width - 32 and self.type == 'right':
                 self.speedx = ENEMY_SPEED
             if self.rect.centery > self.target.rect.centery:
                 self.speedy = -ENEMY_SPEED
