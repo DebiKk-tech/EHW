@@ -389,13 +389,13 @@ class Boss(Enemy):
 
     def update(self):
         super().update()
-        if self.rect.centerx > self.target.rect.centerx:
+        if self.rect.centerx > self.target.rect.centerx and self.rect.left > 31:
             self.speedx = -1
-        else:
+        elif self.rect.centerx < self.target.rect.centerx and self.rect.right < self.target.width - 32:
             self.speedx = 1
-        if self.rect.centery > self.target.rect.centery:
+        if self.rect.centery > self.target.rect.centery and self.rect.top > 31:
             self.speedy = -1
-        else:
+        elif self.rect.centery < self.target.rect.centery and self.rect.bottom < self.target.height - 31:
             self.speedy = 1
         self.rect.x += self.speedx
         self.rect.y += self.speedy
