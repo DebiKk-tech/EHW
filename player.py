@@ -4,6 +4,8 @@ from pygame.constants import K_w, K_a, K_s, K_d, K_UP, K_DOWN, K_RIGHT, K_LEFT
 from decor import *
 import os
 import sys
+from random import choice
+from Death import death
 
 
 def load_image(name, colorkey=None):
@@ -27,8 +29,9 @@ CELL_SIZE = 50
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, x, y, sprites_group, enemy_group, bullet_group, size, type, all_sprites, walls, doors):
+    def __init__(self, x, y, sprites_group, enemy_group, bullet_group, size, type, all_sprites, walls, doors, menu):
         super().__init__()
+        self.menu = menu
         if type == 'archer':
             self.image = load_image('archer.xcf')
         if type == 'warrior':
@@ -86,9 +89,10 @@ class Player(pygame.sprite.Sprite):
                 CHARACTERS[self.type]['attack']('down', self, self.all_sprites, self.bullets, self.walls)
                 self.reload = CHARACTERS[self.type]['reload']
         self.reload -= 1
-        collided_enemies = pygame.sprite.spritecollide(self, self.enemies, True)
-        for _ in collided_enemies:
+        collided_enemies = pygame.sprite.spritecollide(self, self.enemies, False)
+        for collided_enemy in collided_enemies:
             self.health -= 1
+            collided_enemy.health -= 1
         if self.health <= 0:
             self.health = 0
             self.kill()
@@ -156,6 +160,7 @@ class Enemy(pygame.sprite.Sprite):
         self.target = player
         self.bullet_group = bullets_group
         self.player_group = player_group
+        self.health = 1
 
     def update(self):
         collide_list = pygame.sprite.spritecollide(self, self.bullet_group, False)
@@ -167,9 +172,11 @@ class Enemy(pygame.sprite.Sprite):
                     collided.kill()
                 elif type(collided) == Bullet and collided.explosive:
                     collided.explode()
-                self.kill()
-                self.target.points += 15
-                self.target.enemies_killed += 1
+                self.health -= 1
+        if self.health <= 0:
+            self.target.points += 15
+            self.target.enemies_killed += 1
+            self.kill()
 
 
 class CommonEnemy(Enemy):
@@ -366,6 +373,63 @@ class Sword(pygame.sprite.Sprite):
             self.start_image = self.image
 
 
+class Boss(Enemy):
+    def __init__(self, player, bullets_group, player_group, en_bullets, all_sprites):
+        super().__init__(player.width - 100, player.height // 2 - 60, player, bullets_group, player_group, load_image('enemy_war.xcf'))
+        self.image = pygame.Surface((120, 120))
+        self.image.fill((255, 0, 0))
+        self.rect = self.image.get_rect()
+        self.health = 50
+        self.shoot_reload = 120
+        self.spawn_reload = 600
+        self.en_bullets = en_bullets
+        self.all_sprites = all_sprites
+        self.next_type = 'common'
+
+    def update(self):
+        super().update()
+        if self.rect.centerx > self.target.rect.centerx:
+            self.speedx = -1
+        else:
+            self.speedx = 1
+        if self.rect.centery > self.target.rect.centery:
+            self.speedy = -1
+        else:
+            self.speedy = 1
+        self.rect.x += self.speedx
+        self.rect.y += self.speedy
+        self.speedy, self.speedx = 0, 0
+        self.shoot_reload -= 1
+        self.spawn_reload -= 1
+        if self.shoot_reload <= 0:
+            if self.target.rect.right < self.rect.left:
+                self.type = 'right'
+            if self.target.rect.left > self.rect.right:
+                self.type = 'left'
+            if self.target.rect.top > self.rect.bottom:
+                self.type = 'top'
+            if self.target.rect.bottom < self.rect.top:
+                self.type = 'bottom'
+            bul = EnemyBullet(self, self.en_bullets)
+            self.target.all_sprites.add(bul)
+            self.shoot_reload = 60
+        if self.spawn_reload <= 0:
+            self.spawn_reload = 600
+            for _ in range(5):
+                create_enemy(self.rect.centerx, self.rect.centery, self.target, self.all_sprites, self.target.enemies,
+                             self.bullet_group, self.player_group, self.next_type, self.en_bullets)
+            if self.next_type == 'common':
+                self.next_type = 'shooting-' + choice(['top', 'bottom', 'left', 'right'])
+            else:
+                self.next_type = 'common'
+            self.spawn_reload = 600
+
+    def kill(self):
+        super().kill()
+        death(self.target, True)
+        self.target.menu(True)
+
+
 def rotate(target, image, angle):
     coords = target.rect.center
     target.image = pygame.transform.rotate(image, angle)
@@ -373,8 +437,8 @@ def rotate(target, image, angle):
     target.rect.center = coords
 
 
-def create_player(x, y, sprites_group, enemy_group, bullet_group, size, player_type, all_sprites, walls, doors):
-    pl = Player(x, y, sprites_group, enemy_group, bullet_group, size, player_type, all_sprites, walls, doors)
+def create_player(x, y, sprites_group, enemy_group, bullet_group, size, player_type, all_sprites, walls, doors, menu):
+    pl = Player(x, y, sprites_group, enemy_group, bullet_group, size, player_type, all_sprites, walls, doors, menu)
     sprites_group.add(pl)
     return pl
 
@@ -388,6 +452,8 @@ def create_bullet(side, player, sprites_group, bullets_group, walls):
 def create_enemy(x, y, player, sprites_group, enemy_group, bullets_group, player_group, type, en_bullets=None):
     if type.split('-')[0] == 'shooting':
         en = ShootingEnemy(x, y, player, bullets_group, player_group, type.split('-')[1], en_bullets)
+    elif type == 'boss':
+        en = Boss(player, bullets_group, player_group, en_bullets, sprites_group)
     else:
         en = CommonEnemy(x, y, player, bullets_group, player_group)
     sprites_group.add(en)

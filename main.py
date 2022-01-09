@@ -2,7 +2,7 @@
 import pygame
 from decor import *
 from player import *
-from pygame.constants import K_e
+from pygame.constants import K_SPACE
 from walls import *
 from Death import death
 from random import randint
@@ -35,7 +35,7 @@ def render_text(x, y, text, surface):
 
 
 def start_game(player_class, loading_level=False):
-    global cur_ind
+    global cur_ind, boards
     global LEFT, TOP, CELL_SIZE
     running = True
     all_sprites = pygame.sprite.Group()
@@ -59,7 +59,7 @@ def start_game(player_class, loading_level=False):
         for sprite in group:
             all_sprites.add(sprite)
     pl = create_player(WIDTH // 2, HEIGHT // 2, player_group, enemies, bullets, size, player_class, all_sprites, walls,
-                       doors)
+                       doors, create_menu)
     if pl.type == 'warrior':
         sword = Sword(player_group, pl, 'top')
     if loading_level:
@@ -108,9 +108,12 @@ def start_game(player_class, loading_level=False):
                     for sprite in group:
                         all_sprites.add(sprite)
                 if new:
-                    load_from_file('level' + str(randint(1, 5)) + '.txt', pl, all_sprites, enemies, bullets,
-                                   player_group, enemies_bullets)
-        if pygame.key.get_pressed()[K_e] and pl.reload <= 0:
+                    if cur_ind == 9 and not loading_level:
+                        create_enemy(0, 0, pl, all_sprites, enemies, bullets, player_group, 'boss', enemies_bullets)
+                    else:
+                        load_from_file('level' + str(randint(1, 5)) + '.txt', pl, all_sprites, enemies, bullets,
+                                       player_group, enemies_bullets)
+        if pygame.key.get_pressed()[K_SPACE] and pl.reload <= 0:
             sword.swinging = -1
             pl.reload = 30
         if not pl.alive():
@@ -119,7 +122,7 @@ def start_game(player_class, loading_level=False):
                 all_sprites.remove(sprited)
             if not loading_level:
                 death(pl)
-            create_menu()
+            create_menu(True)
             break
         if len(enemies) == 0 and cur_ind != 0:
             door1.set_opened()
@@ -139,6 +142,7 @@ def start_game(player_class, loading_level=False):
             render_text(500, 570, 'Ваши очки: ' + str(pl.points), screen)
             pygame.display.flip()
             clock.tick(FPS)
+            print(cur_ind)
 
 
 def load_from_file(filename, pl, all_sprites, enemies, bullets, player_group, enemies_bullets):
@@ -223,7 +227,11 @@ def select_class():
 
 
 # Костя К.
-def create_menu():
+def create_menu(new_game=False):
+    global cur_ind, boards
+    cur_ind = 0
+    if new_game:
+        boards = []
     running = True
     menu_sprite_background = pygame.sprite.Sprite(menu_sprites)
     menu_sprite_background.image = load_image('menu_image.png')

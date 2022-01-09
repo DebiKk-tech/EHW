@@ -15,6 +15,15 @@ menu_sprites = pygame.sprite.Group()
 clock = pygame.time.Clock()
 
 
+def load_image(name, colorkey=None):
+    fullname = 'data/' + name
+    if not os.path.isfile(fullname):
+        print(f"Файл с изображением '{fullname}' не найден")
+        sys.exit()
+    image = pygame.image.load(fullname)
+    return image
+
+
 def text_render(text, check=0):
     font = pygame.font.Font(None, 30)
     text_coord = 50
@@ -33,13 +42,15 @@ def text_render(text, check=0):
         screen.blit(string_rendered, intro_rect)
 
 
-def death(player):
+def death(player, win=False):
     max_count = 40
     death_text = ["Поздравляю, ты помер)", "",
                   f"Заработанные очки: {player.points}",
                   f"Комнат зачищено: {player.rooms}",
                   f'Врагов убито: {player.enemies_killed}',
                   f"Увековечь себя, введи имя, максимум - {max_count} символов"]
+    if win:
+        death_text[0] = 'Поздравляю, ты выиграл!'
     running = True
     fon = pygame.transform.scale(load_image('menu_image.PNG'), (WIDTH, HEIGHT))
     screen.blit(fon, (0, 0))
