@@ -370,8 +370,7 @@ class Boss(Enemy):
     def __init__(self, player, bullets_group, player_group, en_bullets, all_sprites):
         super().__init__(0, 0, player, bullets_group, player_group,
                          load_image('enemy_war.xcf'))
-        self.image = pygame.Surface((120, 120))
-        self.image.fill((255, 0, 0))
+        self.image = load_image('boXS.xcf')
         self.rect = self.image.get_rect()
         self.rect.x, self.rect.y = WIDTH - 100, HEIGHT // 2 - 60
         self.health = 50
