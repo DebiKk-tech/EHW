@@ -113,7 +113,7 @@ def start_game(player_class, loading_level=False):
                     else:
                         load_from_file('level' + str(randint(1, 5)) + '.txt', pl, all_sprites, enemies, bullets,
                                        player_group, enemies_bullets)
-        if pygame.key.get_pressed()[K_SPACE] and pl.reload <= 0:
+        if pygame.key.get_pressed()[K_SPACE] and pl.reload <= 0 and pl.type == 'warrior':
             sword.swinging = -1
             pl.reload = 30
         if not pl.alive():
