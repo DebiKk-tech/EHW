@@ -4,6 +4,11 @@ from pygame.constants import K_w, K_a, K_s, K_d, K_UP, K_DOWN, K_RIGHT, K_LEFT
 from decor import *
 import os
 import sys
+from random import choice
+from Death import death
+from constants import *
+
+NEW_ROOM = pygame.USEREVENT + 1
 
 
 def load_image(name, colorkey=None):
@@ -15,24 +20,18 @@ def load_image(name, colorkey=None):
     return image
 
 
-BULLET_SPEED = 6
-YELLOW = pygame.Color('yellow')
-BLUE = (0, 0, 255)
-ENEMY_SPEED = 2
-NEW_ROOM = pygame.USEREVENT + 1
-FPS = 120
-LEFT = 30
-TOP = 30
-CELL_SIZE = 50
-
-
 class Player(pygame.sprite.Sprite):
-    def __init__(self, x, y, sprites_group, enemy_group, bullet_group, size, type, all_sprites, walls, doors):
+    def __init__(self, x, y, sprites_group, enemy_group, bullet_group, size, type, all_sprites, walls, doors, menu):
         super().__init__()
-        self.image = pygame.Surface((40, 40))
+        self.menu = menu
+        if type == 'archer':
+            self.image = load_image('archer.xcf')
+        if type == 'warrior':
+            self.image = load_image('warrior.xcf')
+        if type == 'wizard':
+            self.image = load_image('mage.xcf')
         self.walls = walls
         self.rect = self.image.get_rect()
-        self.image.fill(BLUE)
         self.rect.centerx = x
         self.rect.centery = y
         self.type = type
@@ -45,53 +44,58 @@ class Player(pygame.sprite.Sprite):
         self.sprites, self.bullets = sprites_group, bullet_group
         self.all_sprites = all_sprites
         self.doors = doors
+        self.points = START_POINTS
+        self.rooms = 0
+        self.enemies_killed = 0
 
     def update(self):
         self.speedx = 0
         self.speedy = 0
         keystate = pygame.key.get_pressed()
-        if keystate[K_a] and self.rect.left > 31:
+        if keystate[K_a] and self.rect.left > SPACE:
             self.speedx = -self.speed
-        elif keystate[K_d] and self.rect.right < self.width - 31:
+        elif keystate[K_d] and self.rect.right < self.width - SPACE:
             self.speedx = self.speed
-        if keystate[K_w] and self.rect.top > 31:
+        if keystate[K_w] and self.rect.top > SPACE:
             self.speedy = -self.speed
-        elif keystate[K_s] and self.rect.bottom < self.height - 31:
+        elif keystate[K_s] and self.rect.bottom < self.height - SPACE:
             self.speedy = self.speed
         self.rect.x += self.speedx
         self.rect.y += self.speedy
 
-        if pygame.sprite.spritecollide(self, self.doors, False) and len(self.enemies) == 0:
+        collided_doors = pygame.sprite.spritecollide(self, self.doors, False)
+        if collided_doors and collided_doors[0].opened and len(self.enemies) == 0:
             ev = pygame.event.Event(NEW_ROOM)
             pygame.event.post(ev)
 
         if self.reload <= 0 and self.type != 'warrior':
             if keystate[K_LEFT]:
-                CHARACTERS[self.type]['attack']('left', self, self.all_sprites, self.bullets, self.walls)
+                create_bullet('left', self, self.all_sprites, self.bullets, self.walls)
                 self.reload = CHARACTERS[self.type]['reload']
             elif keystate[K_RIGHT]:
-                CHARACTERS[self.type]['attack']('right', self, self.all_sprites, self.bullets, self.walls)
+                create_bullet('right', self, self.all_sprites, self.bullets, self.walls)
                 self.reload = CHARACTERS[self.type]['reload']
             elif keystate[K_UP]:
-                CHARACTERS[self.type]['attack']('top', self, self.all_sprites, self.bullets, self.walls)
+                create_bullet('top', self, self.all_sprites, self.bullets, self.walls)
                 self.reload = CHARACTERS[self.type]['reload']
             elif keystate[K_DOWN]:
-                CHARACTERS[self.type]['attack']('down', self, self.all_sprites, self.bullets, self.walls)
+                create_bullet('down', self, self.all_sprites, self.bullets, self.walls)
                 self.reload = CHARACTERS[self.type]['reload']
         self.reload -= 1
-        collided_enemies = pygame.sprite.spritecollide(self, self.enemies, True)
-        for _ in collided_enemies:
+        collided_enemies = pygame.sprite.spritecollide(self, self.enemies, False)
+        for collided_enemy in collided_enemies:
             self.health -= 1
-        if self.health == 0:
+            collided_enemy.health -= 1
+        if self.health <= 0:
+            self.health = 0
             self.kill()
 
 
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, side, pl, walls):
         super().__init__()
-        self.image = pygame.Surface((20, 20))
+        self.image = load_image('hero_bullet.xcf')
         self.rect = self.image.get_rect()
-        self.image.fill(YELLOW)
         self.explosive = False
         self.exploded = False
         self.walls = walls
@@ -115,7 +119,7 @@ class Bullet(pygame.sprite.Sprite):
                 self.rect.bottom = pl.rect.bottom
                 self.speedy = pl.speedy // 2 + CHARACTERS[pl.type]['bullet_speed']
             self.speedx = pl.speedx // 2
-        self.countdown = 60
+        self.countdown = EXPLOSION_LIVES
 
     def update(self):
         self.rect.x += self.speedx
@@ -124,33 +128,56 @@ class Bullet(pygame.sprite.Sprite):
             self.countdown -= 1
         if not self.countdown:
             self.kill()
-        if pygame.sprite.spritecollide(self, self.walls, False):
+        if pygame.sprite.spritecollide(self, self.walls, False) and not self.explosive:
             self.kill()
+        elif pygame.sprite.spritecollide(self, self.walls, False) and not self.exploded:
+            self.explode()
 
     def explode(self):
         self.exploded = True
         self.speedx, self.speedy = 0, 0
         coords = self.rect.center
-        self.image = pygame.Surface((50, 50))
+        self.image = load_image('EXXXPLOSION.xcf')
         self.rect = self.image.get_rect()
-        self.image.fill(YELLOW)
         self.rect.center = coords
 
 
 class Enemy(pygame.sprite.Sprite):
-    def __init__(self, x, y, player, bullets_group, player_group):
+    def __init__(self, x, y, player, bullets_group, player_group, image):
         super().__init__()
-        self.image = pygame.Surface((40, 40))
+        self.image = image
         self.rect = self.image.get_rect()
-        self.image.fill((220, 20, 60))
         self.rect.x = x
         self.rect.y = y
         self.speedx, self.speedy = 0, 0
         self.target = player
         self.bullet_group = bullets_group
         self.player_group = player_group
+        self.health = 1
 
     def update(self):
+        collide_list = pygame.sprite.spritecollide(self, self.bullet_group, False)
+        collide_list2 = pygame.sprite.spritecollide(self, self.player_group, False)
+        collide_list += collide_list2
+        for collided in collide_list:
+            if type(collided) == Sword and collided.swinging != -2 or type(collided) == Bullet:
+                if type(collided) == Bullet and not collided.explosive:
+                    collided.kill()
+                elif type(collided) == Bullet and collided.explosive:
+                    collided.explode()
+                self.health -= 1
+        if self.health <= 0:
+            self.target.points += ADD_POINTS_ENEMY
+            self.target.enemies_killed += 1
+            self.kill()
+
+
+class CommonEnemy(Enemy):
+    def __init__(self, x, y, player, bullets_group, player_group):
+        super().__init__(x, y, player, bullets_group, player_group, load_image('enemy_war.xcf'))
+
+    def update(self):
+        super().update()
         if self.rect.centerx > self.target.rect.centerx:
             self.speedx = -ENEMY_SPEED
         else:
@@ -162,16 +189,84 @@ class Enemy(pygame.sprite.Sprite):
         self.rect.x += self.speedx
         self.rect.y += self.speedy
         self.speedy, self.speedx = 0, 0
-        # Проверка столкновений
-        collide_list = pygame.sprite.spritecollide(self, self.bullet_group, False)
-        collide_list2 = pygame.sprite.spritecollide(self, self.player_group, False)
-        collide_list += collide_list2
-        for collided in collide_list:
-            if type(collided) == Sword and collided.swinging != -2 or type(collided) == Bullet:
-                self.kill()
-                if len(self.target.enemies) == 0:
-                    for door in self.target.doors:
-                        door.set_opened()
+
+
+class ShootingEnemy(Enemy):
+    def __init__(self, x, y, player, bullets_group, player_group, type, en_bullets):
+        if type == 'bottom':
+            super().__init__(x, y, player, bullets_group, player_group, load_image('enemy_arc_top.xcf'))
+        if type == 'left':
+            super().__init__(x, y, player, bullets_group, player_group, load_image('enemy_arc_right.xcf'))
+        if type == 'right':
+            super().__init__(x, y, player, bullets_group, player_group, load_image('enemy_arc_left.xcf'))
+        if type == 'top':
+            super().__init__(x, y, player, bullets_group, player_group, load_image('enemy_arc_dayn.xcf'))
+        self.type = type
+        self.en_bullets = en_bullets
+        self.reload = ENEMY_RELOAD
+    
+    def update(self):
+        super().update()
+        self.reload -= 1
+        if self.type == 'top' or self.type == 'bottom':
+            if self.rect.top > SPACE and self.type == 'top':
+                self.speedy = -ENEMY_SPEED
+            elif self.rect.bottom < self.target.height - SPACE and self.type == 'bottom':
+                self.speedy = ENEMY_SPEED
+            if self.rect.centerx > self.target.rect.centerx:
+                self.speedx = -ENEMY_SPEED
+            else:
+                self.speedx = ENEMY_SPEED
+        else:
+            if self.rect.left > SPACE and self.type == 'left':
+                self.speedx = -ENEMY_SPEED
+            elif self.rect.right < self.target.width - SPACE and self.type == 'right':
+                self.speedx = ENEMY_SPEED
+            if self.rect.centery > self.target.rect.centery:
+                self.speedy = -ENEMY_SPEED
+            else:
+                self.speedy = ENEMY_SPEED
+        self.rect.x += self.speedx
+        self.rect.y += self.speedy
+        self.speedy, self.speedx = 0, 0
+        if self.reload <= 0:
+            self.reload = ENEMY_RELOAD
+            bul = EnemyBullet(self, self.en_bullets)
+            self.target.all_sprites.add(bul)
+
+
+class EnemyBullet(pygame.sprite.Sprite):
+    def __init__(self, creator, group):
+        super().__init__(group)
+        self.image = load_image('enemy_bullet.xcf')
+        self.rect = self.image.get_rect()
+        if creator.type in ['top', 'bottom']:
+            self.speedx = 0
+            self.rect.centerx = creator.rect.centerx
+            if creator.type == 'top':
+                self.rect.bottom = creator.rect.bottom
+                self.speedy = ENEMY_BULLET_SPEED
+            elif creator.type == 'bottom':
+                self.rect.top = creator.rect.top
+                self.speedy = -ENEMY_BULLET_SPEED
+        if creator.type in ['left', 'right']:
+            self.speedy = 0
+            self.rect.centery = creator.rect.centery
+            if creator.type == 'left':
+                self.rect.right = creator.rect.right
+                self.speedx = ENEMY_BULLET_SPEED
+            elif creator.type == 'right':
+                self.rect.left = creator.rect.left
+                self.speedx = -ENEMY_BULLET_SPEED
+        self.creator = creator
+        self.group = group
+
+    def update(self):
+        self.rect.x += self.speedx
+        self.rect.y += self.speedy
+        player_collided = pygame.sprite.spritecollide(self.creator.target, self.group, True)
+        if player_collided:
+            self.creator.target.health -= 1
 
 
 class Sword(pygame.sprite.Sprite):
@@ -271,6 +366,63 @@ class Sword(pygame.sprite.Sprite):
             self.start_image = self.image
 
 
+class Boss(Enemy):
+    def __init__(self, player, bullets_group, player_group, en_bullets, all_sprites):
+        super().__init__(0, 0, player, bullets_group, player_group,
+                         load_image('enemy_war.xcf'))
+        self.image = load_image('boXS.xcf')
+        self.rect = self.image.get_rect()
+        self.rect.x, self.rect.y = WIDTH - 100, HEIGHT // 2 - 60
+        self.health = 50
+        self.shoot_reload = BOSS_SHOOT_RELOAD
+        self.spawn_reload = BOSS_SPAWN_RELOAD
+        self.en_bullets = en_bullets
+        self.all_sprites = all_sprites
+        self.next_type = 'common'
+
+    def update(self):
+        super().update()
+        if self.rect.centerx > self.target.rect.centerx and self.rect.left > 31:
+            self.speedx = -1
+        elif self.rect.centerx < self.target.rect.centerx and self.rect.right < self.target.width - 32:
+            self.speedx = 1
+        if self.rect.centery > self.target.rect.centery and self.rect.top > 31:
+            self.speedy = -1
+        elif self.rect.centery < self.target.rect.centery and self.rect.bottom < self.target.height - 31:
+            self.speedy = 1
+        self.rect.x += self.speedx
+        self.rect.y += self.speedy
+        self.speedy, self.speedx = 0, 0
+        self.shoot_reload -= 1
+        self.spawn_reload -= 1
+        if self.shoot_reload <= 0:
+            if self.target.rect.right < self.rect.left:
+                self.type = 'right'
+            if self.target.rect.left > self.rect.right:
+                self.type = 'left'
+            if self.target.rect.top > self.rect.bottom:
+                self.type = 'top'
+            if self.target.rect.bottom < self.rect.top:
+                self.type = 'bottom'
+            bul = EnemyBullet(self, self.en_bullets)
+            self.target.all_sprites.add(bul)
+            self.shoot_reload = BOSS_SHOOT_RELOAD
+        if self.spawn_reload <= 0:
+            for _ in range(5):
+                create_enemy(self.rect.centerx, self.rect.centery, self.target, self.all_sprites, self.target.enemies,
+                             self.bullet_group, self.player_group, self.next_type, self.en_bullets)
+            if self.next_type == 'common':
+                self.next_type = 'shooting-' + choice(['top', 'bottom', 'left', 'right'])
+            else:
+                self.next_type = 'common'
+            self.spawn_reload = BOSS_SPAWN_RELOAD
+
+    def kill(self):
+        super().kill()
+        death(self.target, True)
+        self.target.menu(True)
+
+
 def rotate(target, image, angle):
     coords = target.rect.center
     target.image = pygame.transform.rotate(image, angle)
@@ -278,8 +430,8 @@ def rotate(target, image, angle):
     target.rect.center = coords
 
 
-def create_player(x, y, sprites_group, enemy_group, bullet_group, size, player_type, all_sprites, walls, doors):
-    pl = Player(x, y, sprites_group, enemy_group, bullet_group, size, player_type, all_sprites, walls, doors)
+def create_player(x, y, sprites_group, enemy_group, bullet_group, size, player_type, all_sprites, walls, doors, menu):
+    pl = Player(x, y, sprites_group, enemy_group, bullet_group, size, player_type, all_sprites, walls, doors, menu)
     sprites_group.add(pl)
     return pl
 
@@ -290,38 +442,13 @@ def create_bullet(side, player, sprites_group, bullets_group, walls):
     bullets_group.add(bul)
 
 
-def create_enemy(x, y, player, sprites_group, enemy_group, bullets_group, player_group):
-    en = Enemy(x, y, player, bullets_group, player_group)
+def create_enemy(x, y, player, sprites_group, enemy_group, bullets_group, player_group, type, en_bullets=None):
+    if type.split('-')[0] == 'shooting':
+        en = ShootingEnemy(x, y, player, bullets_group, player_group, type.split('-')[1], en_bullets)
+    elif type == 'boss':
+        en = Boss(player, bullets_group, player_group, en_bullets, sprites_group)
+    else:
+        en = CommonEnemy(x, y, player, bullets_group, player_group)
     sprites_group.add(en)
     enemy_group.add(en)
 
-
-WARRIOR = {
-    'speed': 4,
-    'health': 4,
-    'reload': 30,
-    'bullet_speed': False,
-    'attack': create_bullet
-}
-
-ARCHER = {
-    'speed': 4,
-    'health': 5,
-    'reload': 25,
-    'bullet_speed': 6,
-    'attack': create_bullet
-}
-
-WIZARD = {
-    'speed': 2,
-    'health': 7,
-    'reload': 100,
-    'bullet_speed': 3,
-    'attack': create_bullet
-}
-
-CHARACTERS = {
-    'archer': ARCHER,
-    'wizard': WIZARD,
-    'warrior': WARRIOR,
-}

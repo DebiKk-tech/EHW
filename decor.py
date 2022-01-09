@@ -3,9 +3,9 @@ from player import *
 from random import *
 import os
 import sys
+from constants import *
 
 
-COLORS = ['floor', 'plant', 'floor', 'floor', 'cupboard', 'floor', 'floor', 'floor', 'table', 'door']
 all_sprites = pygame.sprite.Group()
 furniture_sprites = pygame.sprite.Group()
 plant_sprites = pygame.sprite.Group()
@@ -58,18 +58,8 @@ class furniture_sprite(pygame.sprite.Sprite):
         self.cur_frame = 0
         self.rect = self.rect.move(x, y)
 
-    def update(self):
-        pass
-
-    def collision(self, object):
-        pass
 
 # -----------------
-
-
-LEFT = 30
-TOP = 30
-CELL_SIZE = 50
 
 
 class Board:
