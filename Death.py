@@ -69,6 +69,8 @@ def death(player, win=False):
                 elif len(name) < max_count:
                     if event.key == pygame.K_RETURN:
                         running = False
+                    elif event.key == pygame.K_SPACE:
+                        pass
                     else:
                         name += event.unicode
         if running:

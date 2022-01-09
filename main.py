@@ -231,7 +231,7 @@ def create_menu(new_game=False):
     global cur_ind, boards
     cur_ind = 0
     if new_game:
-        boards = []
+        boards = [boards[0]]
     running = True
     menu_sprite_background = pygame.sprite.Sprite(menu_sprites)
     menu_sprite_background.image = load_image('menu_image.png')
