@@ -2,14 +2,10 @@ from decor import *
 from player import *
 from Death import *
 import pygame
+from constants import *
 
 
 pygame.init()
-size = WIDTH, HEIGHT = 1060, 560
-FPS = 120
-LEFT = 30
-TOP = 30
-CELL_SIZE = 50
 
 screen = pygame.display.set_mode(size)
 menu_sprites = pygame.sprite.Group()

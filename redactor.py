@@ -2,6 +2,7 @@ import pygame
 from pygame.constants import *
 import os
 import sys
+from constants import *
 
 pygame.init()
 size = width, height = 1000, 560

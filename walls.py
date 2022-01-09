@@ -2,6 +2,7 @@
 import pygame
 import os
 import sys
+from constants import *
 
 
 def load_image(name, colorkey=None):
@@ -32,9 +33,9 @@ class Door(pygame.sprite.Sprite):
         for group in groups:
             group.add(self)
         if self.type == 'left':
-            self.rect.x = 31
+            self.rect.x = SPACE
         else:
-            self.rect.right = size[0] - 31
+            self.rect.right = size[0] - SPACE
         self.rect.centery = size[1] // 2
         self.opened = True
 

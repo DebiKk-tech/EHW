@@ -2,15 +2,12 @@ import sqlite3
 from decor import *
 from player import *
 import pygame
+from constants import *
 
 
 pygame.init()
-size = WIDTH, HEIGHT = 1060, 560
-FPS = 120
-LEFT = 30
-TOP = 30
-CELL_SIZE = 50
 
+size = WIDTH, HEIGHT + 50
 screen = pygame.display.set_mode(size)
 menu_sprites = pygame.sprite.Group()
 clock = pygame.time.Clock()
@@ -80,6 +77,5 @@ def death(player, win=False):
             text_render(name.split(), 1)
             pygame.display.flip()
             clock.tick(FPS)
-    cur.execute('insert into data(name, score, class, rooms, enemies) VALUES(?, ?, ?, ?, ?)',
-                (name, player.points,player.type, player.rooms, player.enemies_killed))
+    cur.execute(LOAD_INTO_BD, (name, player.points,player.type, player.rooms, player.enemies_killed))
     con.commit()

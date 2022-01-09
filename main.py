@@ -1,4 +1,5 @@
 # Талдин М.
+from constants import *
 import pygame
 from decor import *
 from player import *
@@ -11,12 +12,7 @@ import os
 
 
 pygame.init()
-WIDTH, HEIGHT = 1060, 560
 size = WIDTH, HEIGHT + 50  # Добавляется 50-пиксельное пространство для интерфейса, которое остальная игра не учитывает
-FPS = 120
-LEFT = 30
-TOP = 30
-CELL_SIZE = 50
 
 screen = pygame.display.set_mode(size)
 size = WIDTH, HEIGHT
@@ -27,8 +23,8 @@ room_sprites = get_decorate()
 
 
 def render_text(x, y, text, surface):
-    font = pygame.font.Font(None, 50)
-    text = font.render(text, True, (255, 255, 255))
+    font = pygame.font.Font(None, FONT_SIZE)
+    text = font.render(text, True, WHITE)
     text_x = x
     text_y = y
     surface.blit(text, (text_x, text_y))
@@ -53,7 +49,7 @@ def start_game(player_class, loading_level=False):
     door1.set_closed()
     door2 = Door(size, 'right', [doors])
     DECREASE_POINTS_EVENT = pygame.USEREVENT + 2
-    pygame.time.set_timer(DECREASE_POINTS_EVENT, 360)
+    pygame.time.set_timer(DECREASE_POINTS_EVENT, POINTS_TIMER)
     room_sprites = get_decorate()
     for group in room_sprites:
         for sprite in group:
@@ -83,12 +79,12 @@ def start_game(player_class, loading_level=False):
                         else:
                             door1.set_opened()
                             door2.set_opened()
-                        pl.rect.center = WIDTH - 128, HEIGHT // 2
+                        pl.rect.center = WIDTH - SPACE_WITH_DOOR, HEIGHT // 2
                     else:
                         continue
                 else:
                     cur_ind += 1
-                    pl.rect.center = 128, HEIGHT // 2
+                    pl.rect.center = SPACE_WITH_DOOR, HEIGHT // 2
                     door1.set_opened()
                 if cur_ind >= len(boards):
                     door1.set_closed()
@@ -96,7 +92,7 @@ def start_game(player_class, loading_level=False):
                     boards.append(board)
                     new = True
                     pl.rooms += 1
-                    pl.points += 90
+                    pl.points += ADD_POINTS_ROOM
                     for door in doors:
                         door.set_closed()
                 cur_board = boards[cur_ind]
@@ -131,7 +127,7 @@ def start_game(player_class, loading_level=False):
             door1.set_closed()
             door2.set_closed()
         if running:
-            screen.fill((0, 0, 0))
+            screen.fill(BLACK)
             doors.draw(screen)
             doors.update()
             all_sprites.draw(screen)
