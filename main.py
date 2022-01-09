@@ -242,8 +242,7 @@ def create_menu(new_game=False):
     button_sprite.rect.x = 250
     button_sprite.rect.y = 120
     add_loc_btn = pygame.sprite.Sprite(menu_sprites)
-    add_loc_btn.image = pygame.Surface((100, 50))
-    add_loc_btn.image.fill((0, 0, 255))
+    add_loc_btn.image = load_image('add_room_btn.png')
     add_loc_btn.rect = add_loc_btn.image.get_rect()
     add_loc_btn.rect.x = 250
     add_loc_btn.rect.y = 320

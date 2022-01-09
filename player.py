@@ -71,7 +71,8 @@ class Player(pygame.sprite.Sprite):
         self.rect.x += self.speedx
         self.rect.y += self.speedy
 
-        if pygame.sprite.spritecollide(self, self.doors, False) and len(self.enemies) == 0:
+        collided_doors = pygame.sprite.spritecollide(self, self.doors, False)
+        if collided_doors and collided_doors[0].opened and len(self.enemies) == 0:
             ev = pygame.event.Event(NEW_ROOM)
             pygame.event.post(ev)
 

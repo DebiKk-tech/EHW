@@ -1,3 +1,4 @@
+import sqlite3
 from decor import *
 from player import *
 import pygame
@@ -13,6 +14,8 @@ CELL_SIZE = 50
 screen = pygame.display.set_mode(size)
 menu_sprites = pygame.sprite.Group()
 clock = pygame.time.Clock()
+con = sqlite3.connect('ehw.sqlite')
+cur = con.cursor()
 
 
 def load_image(name, colorkey=None):
@@ -52,7 +55,7 @@ def death(player, win=False):
     if win:
         death_text[0] = 'Поздравляю, ты выиграл!'
     running = True
-    fon = pygame.transform.scale(load_image('menu_image.PNG'), (WIDTH, HEIGHT))
+    fon = pygame.transform.scale(load_image('menu_image.png'), (WIDTH, HEIGHT + 50))
     screen.blit(fon, (0, 0))
     name = ''
     while running:
@@ -65,7 +68,7 @@ def death(player, win=False):
                     name = name[:-1]
                 elif len(name) < max_count:
                     if event.key == pygame.K_RETURN:
-                        return name
+                        running = False
                     else:
                         name += event.unicode
         if running:
@@ -75,4 +78,6 @@ def death(player, win=False):
             text_render(name.split(), 1)
             pygame.display.flip()
             clock.tick(FPS)
-
+    cur.execute('insert into data(name, score, class, rooms, enemies) VALUES(?, ?, ?, ?, ?)',
+                (name, player.points,player.type, player.rooms, player.enemies_killed))
+    con.commit()
